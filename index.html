@@ -49,7 +49,7 @@
       background: linear-gradient(180deg, transparent, #27272a 10%, #27272a 90%, transparent);
     }
     @media (max-width: 768px) {
-      .timeline-line { left: 24px; }
+      .timeline-line { left: 16px; }
     }
 
     /* Timeline dot */
@@ -65,7 +65,12 @@
       box-shadow: 0 0 12px rgba(0,255,65,0.6);
     }
     @media (max-width: 768px) {
-      .timeline-dot { left: 24px; }
+      .timeline-dot { left: 16px; }
+    }
+
+    /* Timeline items need left padding on mobile to clear the line/dot */
+    @media (max-width: 768px) {
+      .timeline-item { padding-left: 44px; }
     }
 
     /* Scroll reveal */
@@ -411,7 +416,7 @@
           <div class="timeline-line"></div>
 
           <!-- TriPlay -->
-          <div class="reveal relative grid md:grid-cols-2 gap-8 mb-16">
+          <div class="reveal relative timeline-item grid md:grid-cols-2 gap-8 mb-16">
             <div class="timeline-dot" aria-hidden="true"></div>
             <div class="md:text-right md:pr-12">
               <span class="pill mb-3">2012&ndash;2017</span>
@@ -419,13 +424,13 @@
               <p class="text-purple-400 text-sm font-medium">Senior Team Lead</p>
               <p class="text-surface-muted text-base mt-2">Five years building eMusic and eStories across <em>every</em> mobile platform: iOS, Android, Tizen, BlackBerry, Windows Phone, J2ME. Grew from senior engineer to managing the entire mobile team.</p>
             </div>
-            <div class="md:pl-12"></div>
+            <div class="hidden md:block md:pl-12"></div>
           </div>
 
           <!-- Meetup -->
-          <div class="reveal relative grid md:grid-cols-2 gap-8 mb-16">
+          <div class="reveal relative timeline-item grid md:grid-cols-2 gap-8 mb-16">
             <div class="timeline-dot" aria-hidden="true"></div>
-            <div class="md:pr-12"></div>
+            <div class="hidden md:block md:pr-12"></div>
             <div class="md:pl-12">
               <span class="pill mb-3">2017&ndash;2018</span>
               <h3 class="text-xl font-semibold text-white mt-3">Meetup</h3>
@@ -435,7 +440,7 @@
           </div>
 
           <!-- Yahoo -->
-          <div class="reveal relative grid md:grid-cols-2 gap-8 mb-20">
+          <div class="reveal relative timeline-item grid md:grid-cols-2 gap-8 mb-20">
             <div class="timeline-dot active-dot" aria-hidden="true"></div>
             <div class="md:text-right md:pr-12">
               <span class="pill mb-3">2018&ndash;2021</span>
@@ -443,7 +448,7 @@
               <p class="text-purple-400 text-sm font-medium">Principal &rarr; Manager &rarr; Sr. Engineering Manager</p>
               <p class="text-surface-muted text-base mt-2 mb-4">Three promotions in three years. Took a struggling app and transformed it into a best-in-class product.</p>
             </div>
-            <div class="md:pl-12"></div>
+            <div class="hidden md:block md:pl-12"></div>
           </div>
         </div>
 
