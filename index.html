@@ -118,22 +118,11 @@
       border: 1px solid rgba(0,255,65,0.15);
     }
 
-    /* Stat counter */
-    .stat-value {
-      font-size: 2.5rem; font-weight: 700; line-height: 1;
-      background: linear-gradient(135deg, #00ff41, #00cc33);
-      -webkit-background-clip: text; background-clip: text;
-      -webkit-text-fill-color: transparent;
-    }
-
     /* Fade separator */
     .fade-sep {
       height: 1px; margin: 0 auto;
       background: linear-gradient(90deg, transparent, #27272a, transparent);
     }
-
-    /* Progress bar */
-    .progress-fill { transition: width 1.5s cubic-bezier(0.16, 1, 0.3, 1); }
 
     /* Tag */
     .tag {
@@ -182,7 +171,6 @@
         scroll-behavior: auto !important;
       }
       .reveal { opacity: 1; transform: none; transition: none; }
-      .progress-fill { transition: none; }
       .milestone:hover { transform: none; }
       #bg-canvas { display: none; }
     }
@@ -225,7 +213,7 @@
       <div class="max-w-3xl text-center">
         <div class="reveal">
           <div class="mb-8 flex justify-center">
-            <img src="photo.png" alt="João Birk" class="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover object-top border-2 border-accent-400/40 shadow-lg shadow-accent-400/10" />
+            <img src="photo.jpg" alt="João Birk" class="w-28 h-28 md:w-36 md:h-36 rounded-full object-cover object-top border-2 border-accent-400/40 shadow-lg shadow-accent-400/10" />
           </div>
           <h1 class="text-5xl md:text-7xl font-serif font-bold text-white leading-tight mb-6">
             Jo&atilde;o Birk
@@ -987,12 +975,6 @@
       document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
     }
 
-    // Progress Bars
-    const pObs = new IntersectionObserver((entries) => {
-      entries.forEach(e => { if(e.isIntersecting){ e.target.style.width = e.target.dataset.width; pObs.unobserve(e.target); } });
-    }, { threshold: 0.5 });
-    document.querySelectorAll('.progress-fill').forEach(b => { b.style.width='0%'; pObs.observe(b); });
-
     // Smooth scroll
     document.querySelectorAll('a[href^="#"]').forEach(a => {
       a.addEventListener('click', function(e){ e.preventDefault(); document.querySelector(this.getAttribute('href'))?.scrollIntoView({behavior:'smooth'}); });
@@ -1117,12 +1099,6 @@
 
     // Start tracking sections immediately (updates mood label even before playback)
     setupScrollDetection();
-
-    function createHeroesSynth() {
-      // Legacy entry point — creates context + builds synth
-      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      buildSynth();
-    }
 
     function buildSynth() {
       // Assumes audioCtx already exists and is (ideally) running
@@ -1390,8 +1366,7 @@
       }
     }
 
-    // Mobile synth removed — music is desktop-only
-    // Music is opt-in only — user clicks the play button to start
+    // Music is opt-in only (desktop) — user clicks the play button to start
   </script>
 </body>
 </html>
