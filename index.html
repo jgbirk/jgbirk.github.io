@@ -915,7 +915,7 @@
   </main>
 
   <!-- Floating Music Toggle -->
-  <aside class="fixed bottom-6 right-6 z-50 flex items-center gap-3" aria-label="Music controls">
+  <aside class="fixed bottom-6 right-6 z-50 hidden md:flex items-center gap-3" aria-label="Music controls">
     <div id="music-mood" class="opacity-0 translate-x-4 transition-all duration-700 text-xs font-mono text-accent-400/70 bg-surface-card/80 backdrop-blur border border-surface-border rounded-full px-3 py-1.5 pointer-events-none" aria-hidden="true">
       <span id="mood-icon" class="mr-1">&#x2728;</span>
       <span id="mood-text">Ambient</span>
@@ -1339,8 +1339,6 @@
       Object.keys(layerGains).forEach(k => { layerGains[k] = null; });
     }
 
-    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
-
     function toggleMusic() {
       const btn = document.getElementById('music-btn');
       const iconPlay = document.getElementById('icon-play');
@@ -1372,11 +1370,7 @@
         setTimeout(() => {
           if (!audioCtx) return; // user may have toggled off already
           try {
-            if (isMobile) {
-              buildMobileSynth();
-            } else {
-              buildSynth();
-            }
+            buildSynth();
             const levels = sectionLevels[currentSection] || sectionLevels.prologue;
             Object.keys(levels).forEach(k => {
               if (layerGains[k]) layerGains[k].gain.value = levels[k];
@@ -1396,113 +1390,7 @@
       }
     }
 
-    // === LIGHTWEIGHT MOBILE SYNTH ===
-    // Drastically fewer oscillators, no convolver reverb, simpler drums
-    function buildMobileSynth() {
-      masterGain = audioCtx.createGain();
-      masterGain.gain.value = 0;
-      masterGain.connect(audioCtx.destination);
-
-      const rate = audioCtx.sampleRate;
-
-      // Layer gains
-      Object.keys(layerGains).forEach(k => {
-        layerGains[k] = audioCtx.createGain();
-        layerGains[k].gain.value = sectionLevels.prologue[k];
-        layerGains[k].connect(masterGain);
-      });
-
-      // Simple delay (no convolver — too heavy for mobile)
-      const delay = audioCtx.createDelay(1.0);
-      delay.delayTime.value = BEAT * 0.75;
-      const fbG = audioCtx.createGain(); fbG.gain.value = 0.25;
-      delay.connect(fbG); fbG.connect(delay); delay.connect(masterGain);
-      const delayIn = audioCtx.createGain(); delayIn.gain.value = 0.2;
-      delayIn.connect(delay);
-
-      // Shimmer — only 3 voices (instead of 10)
-      [587.33, 880.00, 1174.66].forEach(f => {
-        const osc = audioCtx.createOscillator();
-        osc.type = 'sine'; osc.frequency.value = f;
-        const g = audioCtx.createGain(); g.gain.value = 0.015;
-        osc.connect(g); g.connect(layerGains.shimmer);
-        osc.start();
-      });
-
-      // Noise buffer for drums
-      const noiseLen = rate;
-      const noiseBuf = audioCtx.createBuffer(1, noiseLen, rate);
-      const nd = noiseBuf.getChannelData(0);
-      for (let i = 0; i < noiseLen; i++) nd[i] = Math.random() * 2 - 1;
-
-      const cycleDur = progression.length * CHORD_DUR;
-
-      function scheduleCycle(base) {
-        progression.forEach((ch, ci) => {
-          const cs = base + ci * CHORD_DUR;
-
-          // BASS — single oscillator
-          const b = audioCtx.createOscillator(); b.type = 'triangle';
-          b.frequency.value = ch.bass;
-          const bg = audioCtx.createGain();
-          bg.gain.setValueAtTime(0, cs);
-          bg.gain.linearRampToValueAtTime(0.1, cs + 0.06);
-          bg.gain.setValueAtTime(0.08, cs + CHORD_DUR * 0.85);
-          bg.gain.linearRampToValueAtTime(0.001, cs + CHORD_DUR);
-          b.connect(bg); bg.connect(layerGains.bass);
-          b.start(cs); b.stop(cs + CHORD_DUR + 0.1);
-
-          // GUITAR — single oscillator per note, every other beat only
-          const pulses = Math.floor(CHORD_DUR / BEAT);
-          for (let p = 0; p < pulses; p += 2) {
-            const t = cs + p * BEAT;
-            ch.notes.forEach(freq => {
-              const o = audioCtx.createOscillator(); o.type = 'triangle';
-              o.frequency.value = freq;
-              const og = audioCtx.createGain();
-              og.gain.setValueAtTime(0.03, t);
-              og.gain.exponentialRampToValueAtTime(0.001, t + BEAT * 1.5);
-              o.connect(og); og.connect(layerGains.guitar); og.connect(delayIn);
-              o.start(t); o.stop(t + BEAT * 2);
-            });
-          }
-
-          // ARPEGGIO — one note per chord
-          const arpFreq = ch.notes[ci % ch.notes.length] * 2;
-          const ao = audioCtx.createOscillator(); ao.type = 'sine';
-          ao.frequency.value = arpFreq;
-          const ag = audioCtx.createGain();
-          ag.gain.setValueAtTime(0.02, cs + BEAT);
-          ag.gain.exponentialRampToValueAtTime(0.001, cs + CHORD_DUR);
-          ao.connect(ag); ag.connect(layerGains.arp); ag.connect(delayIn);
-          ao.start(cs + BEAT); ao.stop(cs + CHORD_DUR + 0.5);
-
-          // DRUMS — hi-hat every other beat only
-          for (let p = 0; p < pulses; p += 2) {
-            const t = cs + p * BEAT;
-            const ns = audioCtx.createBufferSource(); ns.buffer = noiseBuf;
-            const nf = audioCtx.createBiquadFilter(); nf.type = 'highpass'; nf.frequency.value = 8000;
-            const ng = audioCtx.createGain();
-            ng.gain.setValueAtTime(0.015, t);
-            ng.gain.exponentialRampToValueAtTime(0.001, t + 0.04);
-            ns.connect(nf); nf.connect(ng); ng.connect(layerGains.drums);
-            ns.start(t); ns.stop(t + 0.05);
-          }
-        });
-      }
-
-      // Schedule first two cycles
-      const now = audioCtx.currentTime + 0.2;
-      scheduleCycle(now);
-      scheduleCycle(now + cycleDur);
-
-      // Re-schedule loop
-      loopTimer = setInterval(() => {
-        if (!audioCtx) return;
-        const ahead = audioCtx.currentTime + cycleDur;
-        scheduleCycle(ahead);
-      }, cycleDur * 900);
-    }
+    // Mobile synth removed — music is desktop-only
     // Music is opt-in only — user clicks the play button to start
   </script>
 </body>
