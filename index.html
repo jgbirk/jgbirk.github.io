@@ -1333,7 +1333,7 @@
       Object.keys(layerGains).forEach(k => { layerGains[k] = null; });
     }
 
-    function toggleMusic() {
+    async function toggleMusic() {
       const btn = document.getElementById('music-btn');
       const iconPlay = document.getElementById('icon-play');
       const iconEq = document.getElementById('icon-eq');
@@ -1351,7 +1351,17 @@
       } else {
         destroySynth();
         createHeroesSynth();
-        if (audioCtx.state === 'suspended') audioCtx.resume();
+        // Mobile browsers require explicit resume — must await it
+        try { await audioCtx.resume(); } catch(e) {}
+        // Double-check: some mobile browsers need a silent buffer to unlock
+        if (audioCtx.state !== 'running') {
+          const silentBuf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+          const silentSrc = audioCtx.createBufferSource();
+          silentSrc.buffer = silentBuf;
+          silentSrc.connect(audioCtx.destination);
+          silentSrc.start();
+          try { await audioCtx.resume(); } catch(e) {}
+        }
         const levels = sectionLevels[currentSection] || sectionLevels.prologue;
         Object.keys(levels).forEach(k => {
           if (layerGains[k]) layerGains[k].gain.value = levels[k];
