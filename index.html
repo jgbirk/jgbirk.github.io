@@ -1365,29 +1365,26 @@
         const sb = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
         const ss = audioCtx.createBufferSource();
         ss.buffer = sb; ss.connect(audioCtx.destination); ss.start(0);
-        // Resume (returns promise but we don't await — keeps gesture context on iOS)
-        const resumePromise = audioCtx.resume();
-        // Build synth after a tiny delay to let resume take effect
-        const startPlayback = () => {
-          if (!audioCtx) return; // user may have toggled off
-          if (isMobile) {
-            buildMobileSynth();
-          } else {
-            buildSynth();
-          }
-          const levels = sectionLevels[currentSection] || sectionLevels.prologue;
-          Object.keys(levels).forEach(k => {
-            if (layerGains[k]) layerGains[k].gain.value = levels[k];
-          });
-          masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
-          masterGain.gain.linearRampToValueAtTime(0.85, audioCtx.currentTime + 2.5);
-        };
-        // Use the resume promise if available, fallback to setTimeout
-        if (resumePromise && resumePromise.then) {
-          resumePromise.then(startPlayback).catch(() => setTimeout(startPlayback, 100));
-        } else {
-          setTimeout(startPlayback, 100);
-        }
+        // Resume — call it but don't rely on the promise
+        audioCtx.resume();
+        // Build synth after a short delay to let resume take effect.
+        // setTimeout is more reliable than promise.then() across mobile browsers.
+        setTimeout(() => {
+          if (!audioCtx) return; // user may have toggled off already
+          try {
+            if (isMobile) {
+              buildMobileSynth();
+            } else {
+              buildSynth();
+            }
+            const levels = sectionLevels[currentSection] || sectionLevels.prologue;
+            Object.keys(levels).forEach(k => {
+              if (layerGains[k]) layerGains[k].gain.value = levels[k];
+            });
+            masterGain.gain.setValueAtTime(0, audioCtx.currentTime);
+            masterGain.gain.linearRampToValueAtTime(0.85, audioCtx.currentTime + 2.5);
+          } catch(e) { console.error('Synth build error:', e); }
+        }, 200);
         btn.classList.add('playing');
         btn.setAttribute('aria-pressed', 'true');
         btn.setAttribute('aria-label', 'Pause background music');
@@ -1477,7 +1474,7 @@
           const ag = audioCtx.createGain();
           ag.gain.setValueAtTime(0.02, cs + BEAT);
           ag.gain.exponentialRampToValueAtTime(0.001, cs + CHORD_DUR);
-          ao.connect(ag); ag.connect(layerGains.arpeggio); ag.connect(delayIn);
+          ao.connect(ag); ag.connect(layerGains.arp); ag.connect(delayIn);
           ao.start(cs + BEAT); ao.stop(cs + CHORD_DUR + 0.5);
 
           // DRUMS — hi-hat every other beat only
