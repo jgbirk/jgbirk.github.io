@@ -1119,7 +1119,13 @@
     setupScrollDetection();
 
     function createHeroesSynth() {
+      // Legacy entry point — creates context + builds synth
       audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      buildSynth();
+    }
+
+    function buildSynth() {
+      // Assumes audioCtx already exists and is (ideally) running
       masterGain = audioCtx.createGain();
       masterGain.gain.value = 0;
 
@@ -1350,18 +1356,20 @@
         srAnnounce('Music paused');
       } else {
         destroySynth();
-        createHeroesSynth();
-        // Mobile browsers require explicit resume — must await it
+        // On mobile Chrome, AudioContext starts suspended and currentTime stays at 0.
+        // If we schedule notes before resume(), they all land at time 0 and are
+        // instantly in the past once the context starts — so nothing plays.
+        // Fix: pre-create and resume FIRST, then build the synth.
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
         try { await audioCtx.resume(); } catch(e) {}
-        // Double-check: some mobile browsers need a silent buffer to unlock
         if (audioCtx.state !== 'running') {
-          const silentBuf = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
-          const silentSrc = audioCtx.createBufferSource();
-          silentSrc.buffer = silentBuf;
-          silentSrc.connect(audioCtx.destination);
-          silentSrc.start();
+          const sb = audioCtx.createBuffer(1, 1, audioCtx.sampleRate);
+          const ss = audioCtx.createBufferSource();
+          ss.buffer = sb; ss.connect(audioCtx.destination); ss.start();
           try { await audioCtx.resume(); } catch(e) {}
         }
+        // audioCtx is now running — build the synth (it will reuse this audioCtx)
+        buildSynth();
         const levels = sectionLevels[currentSection] || sectionLevels.prologue;
         Object.keys(levels).forEach(k => {
           if (layerGains[k]) layerGains[k].gain.value = levels[k];
